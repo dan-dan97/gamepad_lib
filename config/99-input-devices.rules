@@ -1,0 +1,3 @@
+# setup input devices rules
+
+KERNEL=="event*", MODE:="0666"
