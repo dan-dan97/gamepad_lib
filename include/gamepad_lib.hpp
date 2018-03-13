@@ -1,8 +1,9 @@
-#ifndef GAMEPAD_LIB_HPP
-#define GAMEPAD_LIB_HPP
+#pragma once
 
 #include <linux/input.h>
+#include <boost/thread/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <pthread.h>
 
 class Gamepad
 {
@@ -24,23 +25,15 @@ private:
     boost::posix_time::ptime lastKeyPushTime[maxKeysNumber];
     pthread_t updatingGamepadStateThread;
 
-    int initGamepad(const char* eventHandler);
-    int initGamepad(int gamepadNumber);
+    int initGamepad(unsigned int gamepadNumber);
+    int initGamepadByPath(const char* eventHandler);
     static void* updatingGamepadState(void *arg);
 
 public:
 
-    Gamepad(const char* eventHandler);
-    Gamepad(int gamepadNumber = 0);
+    Gamepad(unsigned int gamepadNumber = 0);
     bool keyDown(int key);
     bool keyPush(int key);
     int axisState(int axis);
     ~Gamepad();
 };
-
-//If you don`t enable echo after its disabling and the program finishes to work, echo will be switched off in the console, so you need to restart console to switch on echo again or switch it by the command "stty echo"
-void echoEnable(bool enable);
-
-void clearInputBuffer();
-
-#endif //GAMEPAD_LIB_HPP
