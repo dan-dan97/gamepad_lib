@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <limits>
 #include <errno.h>
+#include <boost/thread/thread.hpp>
 
 int Gamepad::initGamepad(unsigned int gamepadNumber)
 {
