@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(gamepad_lib)
 
-find_package(Boost 1.40 COMPONENTS date_time thread REQUIRED)
+find_package(Boost COMPONENTS date_time thread REQUIRED)
 
 include_directories(
     include
