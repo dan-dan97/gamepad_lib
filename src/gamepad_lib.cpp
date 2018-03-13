@@ -1,48 +1,16 @@
 #include <gamepad_lib.hpp>
 #include <sys/file.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <string>
-#include <limits>
-#include <termios.h>
 #include <iostream>
+#include <string>
+#include <algorithm>
+#include <cstdio>
+#include <limits>
 #include <errno.h>
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/thread.hpp>
 
-using std::cout;
-using std::cin;
-using std::endl;
-using std::string;
-
-int Gamepad::initGamepad(const char* eventHandler)
-{
-    for(int i = 0; i < maxKeysNumber; i++) {
-        keyDownMap[i] = 0;
-        keyPushMap[i] = 0;
-    }
-    for(int i = 0; i < maxAxisNumber; i++)
-        axisStateMap[i] = 0;
-
-    if(!eventHandler) return -1;
-
-    file = open (eventHandler, O_RDONLY|O_NONBLOCK); //WTF?
-    if (file == -1){
-        cout << "Error opening gamepad file! Maybe you need unroot it" << endl;
-        return -1;
-    }
-
-    if(!wasInitialized){
-        wasInitialized = 1;
-        pthread_create(&updatingGamepadStateThread, NULL, updatingGamepadState, (void *) this);
-    }
-    return 0;
-}
-
-int Gamepad::initGamepad(int gamepadNumber)
+int Gamepad::initGamepad(unsigned int gamepadNumber)
 {
     const int bufferSize = 1024;
-    static string filesNames[maxGamepadsNumber];
+    static std::string filesNames[maxGamepadsNumber];
     char buffer[bufferSize];
     FILE *commandFile;
     int gamepadsNumber = 0;
@@ -60,47 +28,71 @@ int Gamepad::initGamepad(int gamepadNumber)
             while(1){
                 fgets(buffer, bufferSize, commandFile);
                 if(buffer[0] == 10 && buffer[1] == 0) break;
-                string str = buffer;
+                std::string str = buffer;
                 findRes1 = str.find("name");
                 findRes2 = str.find(':');
-                if(findRes1 != string::npos && findRes2 != string::npos && findRes1 < findRes2)
+                if(findRes1 != std::string::npos && findRes2 != std::string::npos && findRes1 < findRes2)
                 {
                     str.erase(0, str.find('\"') + 1);
                     str.erase(str.find('\"'), 2);
-                    boost::algorithm::to_lower(str);
-                    if(str.find("gamepad") != string::npos){
+                    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+                    if(str.find("gamepad") != std::string::npos){
                         deviceNameIsGood = 1;
                         continue;
                     }
                 }
                 findRes1 = str.find("bits ev");
                 findRes2 = str.find(':');
-                if(findRes1 != string::npos && findRes2 != string::npos && findRes1 < findRes2)
-                    if(str.find("EV_SYN") != string::npos && str.find("EV_KEY") != string::npos && str.find("EV_ABS") != string::npos){
+                if(findRes1 != std::string::npos && findRes2 != std::string::npos && findRes1 < findRes2)
+                    if(str.find("EV_SYN") != std::string::npos && str.find("EV_KEY") != std::string::npos && str.find("EV_ABS") != std::string::npos){
                         deviceEventsAreGood = 1;
                         continue;
                     }
             }
             if(deviceNameIsGood && deviceEventsAreGood)gamepadsNumber++;
         }
-        if(gamepadNumber < 0 || (gamepadNumber >= gamepadsNumber && gamepadsNumber != 0))
+        if((gamepadNumber >= gamepadsNumber && gamepadsNumber != 0))
         {
-            if(!wasInitialized)cout << "Invalid gamepad number!" << endl;
+            if(!wasInitialized)std::cout << "Invalid gamepad number!" << std::endl;
             gamepadNumber = -1;
         }
         if(gamepadsNumber == 0)
         {
-            if(!wasInitialized)cout << "Error reading gamepads list! Maybe you need root access or input-utils is not installed" << endl;
+            if(!wasInitialized)std::cout << "Error reading gamepads list! Maybe you need root access or input-utils is not installed" << std::endl;
             gamepadNumber = -1;
         }
     }
     else {
-        cout << "Error running lsinput" << endl;
+        std::cout << "Error running lsinput" << std::endl;
         gamepadNumber = -1;
     }
     pclose(commandFile);
 
-    return initGamepad(gamepadNumber == -1 ? NULL : filesNames[gamepadNumber].c_str());
+    return initGamepadByPath(gamepadNumber == -1 ? NULL : filesNames[gamepadNumber].c_str());
+}
+
+int Gamepad::initGamepadByPath(const char* eventHandler)
+{
+    for(int i = 0; i < maxKeysNumber; i++) {
+        keyDownMap[i] = 0;
+        keyPushMap[i] = 0;
+    }
+    for(int i = 0; i < maxAxisNumber; i++)
+        axisStateMap[i] = 0;
+
+    if(!eventHandler) return -1;
+
+    file = open (eventHandler, O_RDONLY|O_NONBLOCK); //WTF?
+    if (file == -1){
+        std::cout << "Error opening gamepad file! Maybe you need unroot it" << std::endl;
+        return -1;
+    }
+
+    if(!wasInitialized){
+        wasInitialized = 1;
+        pthread_create(&updatingGamepadStateThread, NULL, updatingGamepadState, (void *)this);
+    }
+    return 0;
 }
 
 void* Gamepad::updatingGamepadState(void *arg)
@@ -158,17 +150,9 @@ void* Gamepad::updatingGamepadState(void *arg)
     }
 }
 
-Gamepad::Gamepad(const char* eventHandler)
+Gamepad::Gamepad(unsigned int gamepadNumber)
 {
     wasInitialized = 0;
-    echoEnable(0);
-    initGamepad(eventHandler);
-}
-
-Gamepad::Gamepad(int gamepadNumber)
-{
-    wasInitialized = 0;
-    echoEnable(0);
     initGamepad(gamepadNumber);
 }
 
@@ -191,7 +175,6 @@ bool Gamepad::keyPush(int key)
     else return 0;
 }
 
-
 int Gamepad::axisState(int axis)
 {
     if(axis >= 0 && axis < maxAxisNumber)
@@ -204,35 +187,3 @@ Gamepad::~Gamepad()
     pthread_cancel(updatingGamepadStateThread);
     pthread_join(updatingGamepadStateThread, NULL);
     close(file);
-
-    clearInputBuffer();
-
-    //Enabling echo in console
-    echoEnable(1);
-}
-
-void echoEnable(bool enable)
-{
-    static int echoOn = -1;
-    if(echoOn == -1 || echoOn != enable){
-        echoOn = enable;
-        struct termios TermConf;
-        tcgetattr(STDIN_FILENO, &TermConf);
-
-        if(echoOn)
-            TermConf.c_lflag |= (ICANON | ECHO);
-        else
-            TermConf.c_lflag &= ~(ICANON | ECHO);
-
-        tcsetattr(STDIN_FILENO, TCSANOW, &TermConf);
-    }
-}
-
-void clearInputBuffer()
-{
-    static bool firstTime = 1;
-    if(firstTime){
-        firstTime = 0;
-        while(scanf("%*c"));
-    }
-}
