@@ -1,10 +1,5 @@
-#include <unistd.h>
-#include <iostream>
 #include <gamepad_lib.hpp>
-
-using std::cout;
-using std::cin;
-using std::endl;
+#include <iostream>
 
 int main (int argc, char *argv[])
 {
@@ -14,10 +9,10 @@ int main (int argc, char *argv[])
 
     while (!gamepad.keyPush(KEY_SELECT)){
         for(int i = 0; i < KEY_CNT; i++){
-            if(gamepad.keyPush(i)) cout << "Pushed key " << i << endl;
+            if(gamepad.keyPush(i)) std::cout << "Pushed key " << i << std::endl;
 	    }
 
-        usleep(50000);
+        boost::this_thread::sleep(boost::posix_time::milliseconds(50));
     }
     return 0;
 }
