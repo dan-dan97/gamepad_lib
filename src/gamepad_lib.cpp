@@ -188,3 +188,4 @@ Gamepad::~Gamepad()
     pthread_cancel(updatingGamepadStateThread);
     pthread_join(updatingGamepadStateThread, NULL);
     close(file);
+}
