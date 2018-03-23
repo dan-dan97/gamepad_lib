@@ -14,7 +14,7 @@ private:
     static const int maxAxisNumber = ABS_CNT;
     static const int maxGamepadsNumber = 64;
     static const int maxEventsNumber = 1024;
-    static const int keyPushSavingDurationMillis = 1000;
+    static const int keyPushSavingDurationMillis = 3000;
 
     int file;
     bool wasInitialized;
